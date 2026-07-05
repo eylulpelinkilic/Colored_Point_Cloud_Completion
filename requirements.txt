@@ -1,0 +1,22 @@
+# Python deps for the colored point-cloud pipeline.
+# NOTE: CloudCompare is a DESKTOP app, not pip — install via apt (Colab) or your OS.
+#   Colab: apt-get install -y cloudcompare xvfb
+
+numpy
+scipy
+pandas
+tqdm
+plotly
+open3d
+huggingface_hub
+
+# pymeshlab: EPFL ambient-occlusion path (sample_s2/s3) needs the >=2022 API
+# (compute_scalar_ambient_occlusion / face_scalar_array). Pin if the API drifts.
+pymeshlab>=2022.2
+
+# eval.ipynb / scripts/eval_fidelity.py (mesh-fidelity metrics: texture lookup, closest-point)
+trimesh
+rtree
+pillow
+
+# NOTE: open3d / pymeshlab have no wheels for Python 3.14 yet -> use Python 3.11.

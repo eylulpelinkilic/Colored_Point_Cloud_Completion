@@ -3,3 +3,25 @@
 
 # Jupyter
 .ipynb_checkpoints/
+
+# ---------------------------------------------------------------
+# Data lives OUTSIDE git (HuggingFace Datasets / Google Drive).
+# Never commit point clouds, meshes, or the raw ShapeNet zips.
+# ---------------------------------------------------------------
+data/
+*.ply
+*.zip
+*.obj
+*.mtl
+*.binvox
+*_SAMPLED_POINTS.ply
+
+# Local / Colab working dirs
+work*/
+/content/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
