@@ -32,7 +32,9 @@ def main():
         sys.exit("Set HF_TOKEN (your HuggingFace write token).")
 
     api = HfApi(token=token)
-    create_repo(repo, repo_type="dataset", exist_ok=True, token=token)
+    # PRIVATE by default — flip to public deliberately at paper time (note: exist_ok
+    # won't change an existing repo's visibility; set it in the HF UI if it already exists).
+    create_repo(repo, repo_type="dataset", exist_ok=True, token=token, private=True)
 
     uploaded = []
     for sub in DERIVED_SUBDIRS:
