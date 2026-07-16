@@ -20,7 +20,7 @@ from huggingface_hub import HfApi, create_repo  # noqa: E402
 
 # Derived subfolders to publish (skip whatever you don't have yet).
 # These match the pipeline outputs: s2 dense GT, s3 dense + downsampled GT, partials.
-DERIVED_SUBDIRS = ["data_s2", "data_s3", "gt_s3", "occluded_occ"]
+DERIVED_SUBDIRS = ["data_s2", "data_s3", "gt_s3", "occluded_occ", "labeled_s3"]
 
 
 def main():
