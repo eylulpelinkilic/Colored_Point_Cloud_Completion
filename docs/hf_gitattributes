@@ -1,0 +1,5 @@
+# .ply ne HF varsayilaninda ne de Efe'nin repo'sunda LFS'e kayitli.
+# Bu dosyayi repo koküne .gitattributes olarak YUKLEMEDEN once ply eklersen
+# 518 MB duz git nesnesi olarak gider. Once bunu yukle.
+*.ply filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
