@@ -67,7 +67,7 @@ if not _wandb_ready():
     sys.exit("W&B kimligi yok. Terminalde bir kez `wandb login` calistir "
              "(ya da WANDB_API_KEY tanimla). Bassiz calisirken interaktif login mumkun degil.")
 
-# ── hucre 0 ──
+# -- hucre 0 --
 import os, sys, subprocess, glob
 
 # Lightning Studio'nun kalici calisma alani; yoksa cwd'ye duser (Colab/yerel de calisir)
@@ -88,13 +88,13 @@ import shutil
 print(f"bos disk  : {shutil.disk_usage(WORK).free/1e9:.0f} GB")
 print("  (densepoint 6.95 GB zip + ~12 GB acilmis alan ister)")
 
-# ── hucre 1 (ortam kurulumu) ──
+# -- hucre 1 (ortam) --
 if not ARGS.skip_env:
     subprocess.run(r"""pip install -q easydict h5py matplotlib opencv-python pyyaml scipy tensorboardX tqdm transforms3d einops timm open3d gdown huggingface_hub wandb pandas""", shell=True, check=False)
     import numpy as np, torch
     print("numpy", np.__version__, "| torch", torch.__version__, "| cuda", torch.cuda.is_available())
 
-# ── hucre 2 (ortam kurulumu) ──
+# -- hucre 2 (ortam) --
 if not ARGS.skip_env:
     # --- PoinTr fork'unu klonla ---
     POINTR = os.path.join(WORK, "PoinTr")
@@ -115,7 +115,7 @@ if not ARGS.skip_env:
         os.environ["TORCH_CUDA_ARCH_LIST"] = f"{cc[0]}.{cc[1]}"
     print("CUDA_HOME:", os.environ.get("CUDA_HOME"), "| arch:", os.environ.get("TORCH_CUDA_ARCH_LIST"))
 
-# ── hucre 3 ──
+# -- hucre 3 --
 # pointnet2_ops'u DERLEMEK yerine saf-PyTorch SHIM olarak enjekte ediyoruz.
 # torch 2.11+cu128 gibi çok yeni stack'te eski CUDA repo'su derlenmiyor. PoinTr sadece
 # şu 6 fonksiyonu kullanıyor; hepsi saf torch'la doğru (yerelde brute-force'a karşı test edildi).
@@ -172,19 +172,45 @@ from pointnet2_ops import pointnet2_utils
 print("pointnet2_ops shim enjekte edildi:",
       [n for n in dir(pointnet2_utils) if not n.startswith("_")])
 
-# ── hucre 4 (ortam kurulumu) ──
+# -- hucre 4 (ortam) --
 if not ARGS.skip_env:
-    # --- chamfer_dist zorunlu; digerleri GRNet icin, hata verirse gecilebilir ---
-    for ext in ["chamfer_dist", "gridding", "gridding_loss", "cubic_feature_sampling"]:
-        p = os.path.join(POINTR, "extensions", ext)
-        if not os.path.isdir(p): continue
-        r = subprocess.run("pip install -q --no-build-isolation .", shell=True, cwd=p,
-                           capture_output=True, text=True)
-        print(f"  {ext}: {'ok' if r.returncode == 0 else 'FAIL'}")
-        if r.returncode and ext == "chamfer_dist":
-            print(r.stderr[-800:]); raise RuntimeError("chamfer_dist zorunlu")
+    # --- CUDA extension'lari: DERLEME YOK, cikarim icin stub ---
+    # PoinTr'i DONMUS halde sadece tahmin icin kullaniyoruz. Derlenmis extension'lar
+    # yalnizca KAYIP fonksiyonlarinda geciyor (chamfer) ya da GRNet'in import zincirinde
+    # (gridding / cubic_feature_sampling) — hicbiri cagrilmiyor. Colab'da bu derleme
+    # hem 5-10 dk suruyor hem de torch/CUDA surumune gore sik sik patliyor.
+    # Gercekten derlenmis olan varsa O kullanilir; yoksa cagirinca anlasilir hata veren
+    # stub konur. PoinTr'i EGITECEKSEN BUILD_EXTENSIONS=True yap.
+    BUILD_EXTENSIONS = False
 
-# ── hucre 5 ──
+    import types
+    if BUILD_EXTENSIONS:
+        for ext in ["chamfer_dist", "gridding", "gridding_loss", "cubic_feature_sampling"]:
+            p = os.path.join(POINTR, "extensions", ext)
+            if not os.path.isdir(p): continue
+            r = subprocess.run("pip install -q --no-build-isolation .", shell=True, cwd=p,
+                               capture_output=True, text=True)
+            print(f"  build {ext}: {'ok' if r.returncode == 0 else 'FAIL'}")
+
+    def _stub_ext(name, funcs=("forward", "backward")):
+        m = types.ModuleType(name)
+        def _die(*a, _n=name, **k):
+            raise NotImplementedError(
+                f"'{_n}' CUDA extension'i derlenmedi. Bu kurulum SADECE CIKARIM icin: "
+                "donmus PoinTr tahmin yapar, kayip fonksiyonlari cagrilmaz. "
+                "Egitim istiyorsan BUILD_EXTENSIONS=True yap.")
+        for f in funcs: setattr(m, f, _die)
+        sys.modules[name] = m
+
+    _stubbed = []
+    for _n in ("chamfer", "gridding", "gridding_distance", "cubic_feature_sampling"):
+        if _n in sys.modules: continue
+        try: __import__(_n)                      # gercek derlenmisse ONU kullan
+        except ImportError: _stub_ext(_n); _stubbed.append(_n)
+    print("stub'lanan extension:", _stubbed or "yok (hepsi derlenmis)")
+
+
+# -- hucre 5 --
 # --- checkpoint + smoke test ---
 CKPT = os.path.join(POINTR, "ckpts", "PoinTr_ShapeNet55.pth")
 os.makedirs(os.path.dirname(CKPT), exist_ok=True)
@@ -195,16 +221,16 @@ from pointnet2_ops import pointnet2_utils
 from models.PoinTr import PoinTr, fps
 print("checkpoint MB:", round(os.path.getsize(CKPT)/1e6, 1), "| importlar OK")
 
-# ── hucre 6 ──
+# -- hucre 6 --
 import wandb
 _k = os.environ.get("WANDB_API_KEY")
-wandb.login(key=_k) if _k else wandb.login()   # onbellekten (~/.netrc)
+wandb.login(key=_k) if _k else wandb.login()   # onbellekten
 
 WANDB_PROJECT = "colored-pc-completion"
 WANDB_ENTITY  = None
 print("wandb", wandb.__version__)
 
-# ── hucre 7 ──
+# -- hucre 7 --
 # ═════════════ AYARLAR ═════════════
 RUN_DATASETS = ARGS.datasets      # + "omniobject3d", "3dcompat" (erisim alinca)
 DIFFICULTIES = ["simple", "moderate", "hard"]          # %25 / %50 / %75
@@ -256,7 +282,7 @@ def make_entry(xyz, rgb, part, mid, difficulty, seed):
                 partial_dense=None, model_id=mid)
 print("ortak yardimcilar hazir")
 
-# ── hucre 8 ──
+# -- hucre 8 --
 # ═════════════ 1) OURS — HF, yayinlanmis occlusion ═════════════
 from huggingface_hub import snapshot_download
 OURS_CATS = {"airplane": "02691156", "car": "02958343", "chair": "03001627"}
@@ -292,7 +318,7 @@ def load_ours(category, difficulty):
     return out, OURS_PARTS[category]
 print("ours yukleyicisi hazir")
 
-# ── hucre 9 ──
+# -- hucre 9 --
 # ═════════════ 2) DENSEPOINT — dogrudan zip, ShapeNet+ShapeNetPart turevi ═════════════
 DP_URL  = "http://rwdc.nagao.nuie.nagoya-u.ac.jp/DensePoint/Download"
 DP_ROOT = os.path.join(DATA_ROOT, "densepoint")
@@ -346,7 +372,7 @@ def load_densepoint(category, difficulty):
     return out, [f"part{i}" for i in range(npart)]
 print("densepoint yukleyicisi hazir")
 
-# ── hucre 10 (ortam kurulumu) ──
+# -- hucre 10 (ortam) --
 if not ARGS.skip_env:
     # ═════════════ 3) OMNIOBJECT3D — gercek tarama, PARCA ETIKETI YOK ═════════════
     # Kurulum (bir kez, terminalden):
@@ -371,7 +397,7 @@ if not ARGS.skip_env:
         return out, []
     print("omniobject3d yukleyicisi hazir (parca etiketi yok)")
 
-# ── hucre 11 ──
+# -- hucre 11 --
 # ═════════════ 4) 3DCoMPaT++ — parca + malzeme ═════════════
 # Kurulum (bir kez): lisans formunu doldur -> https://3dcompat-dataset.org/doc/dl-dataset.html
 # Aldigin point-cloud arsivini COMPAT_ROOT altina ac.
@@ -412,7 +438,7 @@ REGISTRY = {
 for k in RUN_DATASETS: assert k in REGISTRY, f"bilinmeyen veri seti: {k}"
 print("kayit defteri:", list(REGISTRY))
 
-# ── hucre 12 ──
+# -- hucre 12 --
 # --- STEP 1: dondurulmuş orijinal PoinTr ---
 import torch
 from easydict import EasyDict
@@ -481,7 +507,7 @@ def nn_color(partial, comp):                   # BASELINE 1
     return partial[i, 3:6]
 print(f"dondurulmuş PoinTr hazır | num_pred={geo.num_pred}")
 
-# ── hucre 13 ──
+# -- hucre 13 --
 # --- STEP 2: PointNet part-seg (PoinTr_setup_colab.ipynb ile aynı model) ---
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -557,7 +583,7 @@ def part_color_pointnet(partial, comp, model):   # BASELINE 2 — mevcut yöntem
     return mean[cl]
 
 
-# ── hucre 14 ──
+# -- hucre 14 --
 # ---------------- D1 · DDPM şeması + RePaint zıplama şeması ----------------
 import math
 
@@ -618,7 +644,7 @@ def get_schedule_jump(T, jump_length=10, jump_n_sample=5):
 DIF = Diffusion(T=200)
 print("T =", DIF.T, "| RePaint adım sayısı (j=10, U=3):", len(get_schedule_jump(DIF.T, 10, 3)))
 
-# ── hucre 15 ──
+# -- hucre 15 --
 # ---------------- D2 · parça-koşullu denoiser ----------------
 def knn_graph(xyz, k, chunk=4096):
     """(B,N,3) -> (B,N,k) komşu indisleri (kendisi hariç), sorgu üzerinden parçalı."""
@@ -705,7 +731,7 @@ class PartColorDenoiser(nn.Module):
         return self.out(h)
 
 
-# ── hucre 16 ──
+# -- hucre 16 --
 # ---------------- D4 · RePaint çıkarımı (parça bazlı) ----------------
 @torch.no_grad()
 def repaint_colors(model, dif, xyz, part, known, known_rgb, *, jump_length=10,
@@ -790,7 +816,7 @@ def make_repaint_input(d, comp, seg_model, drop_part=None, oracle_seg=False):
 
 print("RePaint çıkarımı hazır")
 
-# ── hucre 17 ──
+# -- hucre 17 --
 # --- oryantasyon araması, FONKSİYON olarak (döngüde kategori başına çağrılır) ---
 # Doğru ShapeNet-Part -> ShapeNet-55 frame'i 6 permütasyon x 8 işaret = 48 aday
 # arasından, GT'ye Chamfer ile ÖLÇÜLEREK seçilir. Göz kararı değil.
@@ -811,7 +837,7 @@ def find_frame(DATA, IDX, n_probe=3):
 
 print("find_frame hazır")
 
-# ── hucre 18 ──
+# -- hucre 18 --
 # eğitim döngüsü (D3'ün fonksiyon kısmı — burada modelleri biz kuruyoruz)
 def train_color_ddpm(model, dif, clouds, epochs=300, bs=8, lr=2e-4, device=DEV, log=100):
     """Koşulsuz DDPM eğitimi — occlusion maskesi HİÇ görülmez."""
@@ -836,7 +862,7 @@ def train_color_ddpm(model, dif, clouds, epochs=300, bs=8, lr=2e-4, device=DEV, 
     return tot / n
 print("eğitim döngüsü hazır")
 
-# ── hucre 19 ──
+# -- hucre 19 --
 # ---------------- kalici depolama + sonuc onbellegi ----------------
 import time
 RESULTS = os.path.join(OUT_ROOT, "results.jsonl")
@@ -870,7 +896,7 @@ def load_model(tag, name, model, meta):
 _done = {(r["dataset"], r["category"], r["difficulty"], r["model"]) for r in load_results()}
 print(f"onbellekte {len(_done)} model-sonucu | {RESULTS}")
 
-# ── hucre 20 ──
+# -- hucre 20 --
 # ---------------- ANA DONGU ----------------
 DDPM_EPOCHS, SEG_EPOCHS, DDPM_ARCH = ARGS.ddpm_epochs, 60, dict(width=128, k=16, n_blocks=3)
 PART_KEYS = ["part-mean", "RePaint-part", "RePaint-part (oracle seg)", "oracle ceiling"]
@@ -1029,7 +1055,7 @@ for ds_name in RUN_DATASETS:
 
 print(f"\nBENCHMARK BITTI — {(time.time()-T0)/60:.0f} dk")
 
-# ── hucre 21 ──
+# -- hucre 21 --
 import pandas as pd
 rs = load_results()
 assert rs, "henuz sonuc yok"
@@ -1060,7 +1086,7 @@ summ.finish()
 csv_p = os.path.join(OUT_ROOT, "benchmark_grid.csv"); g.to_csv(csv_p, index=False)
 print("\n->", csv_p)
 
-# ── hucre 22 ──
+# -- hucre 22 --
 # ---------------- HTML rapor ----------------
 def _fmt(v):
     return "&ndash;" if pd.isna(v) else f"{v:.2f}"
