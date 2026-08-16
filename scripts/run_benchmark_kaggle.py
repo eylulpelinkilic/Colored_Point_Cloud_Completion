@@ -36,6 +36,7 @@ import argparse, os, sys, subprocess, glob, shutil
 # ══════════════════════════ CONFIG — duzenlemek istedigin tek yer ══════════════════════════
 CONFIG = dict(
     comp_points     = 2048,
+    exp_tag         = "",
     categories      = [],
     datasets        = ["ours"],   # + "densepoint" (6.95 GB zip; Kaggle diski yeterli)
     models_per_cat  = 200,
@@ -56,6 +57,9 @@ ap.add_argument("--comp-points", type=int, default=2048,
                 help="PoinTr ciktisi buna FPS'lenir; DDPM egitim yogunluguna yaklastirir")
 ap.add_argument("--categories", nargs="+", default=[],
                 help="bos = hepsi; ornek: --categories airplane")
+ap.add_argument("--exp-tag", default=None,
+                help="deney etiketi; verilirse onceki kosular EZILMEZ "
+                     "(ayri results_<tag>.jsonl, ayri W&B run id)")
 ap.add_argument("--skip-env", action="store_true")
 _a = ap.parse_args()
 for k, v in vars(_a).items():
@@ -278,6 +282,9 @@ COMP_POINTS      = ARGS.comp_points   # PoinTr ciktisi (6144) buna FPS'lenir.
                           # kaymasi demek, kNN komsulugu fiziksel olarak kuculuyor
                           # ve model egitim dagiliminin disina dusuyor.
 ONLY_CATEGORIES  = ARGS.categories     # bos = hepsi; ["airplane"] gibi kisitlayabilirsin
+EXP_TAG          = ARGS.exp_tag     # deney etiketi. Bos degilse sonuc dosyasi, W&B run id'si ve
+                          # checkpoint adlari buna gore ayrisir -> onceki kosular EZILMEZ.
+                          # ornek: EXP_TAG = "long4k"  ->  results_long4k.jsonl
 TEST_FRAC        = 0.25
 EVAL_N           = ARGS.eval_n      # degerlendirilen test modeli (None = tamami)
 N_SEEDS          = 1
@@ -911,7 +918,8 @@ print("eğitim döngüsü hazır")
 # -- hucre 19 --
 # ---------------- kalici depolama + sonuc onbellegi ----------------
 import time
-RESULTS = os.path.join(OUT_ROOT, "results.jsonl")
+_sfx = f"_{EXP_TAG}" if EXP_TAG else ""
+RESULTS = os.path.join(OUT_ROOT, f"results{_sfx}.jsonl")
 
 def load_results():
     if not os.path.exists(RESULTS): return []
@@ -926,7 +934,7 @@ def load_results():
 def append_result(rec):
     with open(RESULTS, "a") as f: f.write(json.dumps(rec) + "\n")
 
-def ckpt_path(tag, name): return os.path.join(OUT_ROOT, f"{tag}_{name}.pt")
+def ckpt_path(tag, name): return os.path.join(OUT_ROOT, f"{tag}{_sfx}_{name}.pt")
 
 def save_model(tag, name, model, meta):
     torch.save({"sd": model.state_dict(), "meta": meta}, ckpt_path(tag, name))
@@ -1018,10 +1026,12 @@ for ds_name in RUN_DATASETS:
             print(f"\n  -- {difficulty}: {len(idxs)} test, {len(todo)} yapilacak", flush=True)
 
             run = wandb.init(project=WANDB_PROJECT, entity=WANDB_ENTITY,
-                             id=f"{ds_name}-{category}-{difficulty}",
-                             name=f"{ds_name}/{category}/{difficulty}",
+                             id=f"{ds_name}-{category}-{difficulty}{_sfx}",
+                             name=f"{ds_name}/{category}/{difficulty}{_sfx}",
                              group=ds_name, job_type="eval", resume="allow", reinit=True,
                              config=dict(dataset=ds_name, category=category, difficulty=difficulty,
+                                         exp_tag=EXP_TAG or "base",
+                                         comp_points=COMP_POINTS,
                                          crop_ratio={"simple":.25,"moderate":.5,"hard":.75}[difficulty],
                                          has_parts=HAS_PARTS, n_parts=NUM_PARTS,
                                          n_models=len(DATA), n_test=len(idxs), n_pts=N_PTS,
@@ -1106,16 +1116,25 @@ print(f"\nBENCHMARK BITTI — {(time.time()-T0)/60:.0f} dk")
 
 # -- hucre 21 --
 import pandas as pd
-rs = load_results()
+# tum deneyleri oku (results.jsonl, results_<tag>.jsonl ...) ve exp sutunuyla ayir
+rs = []
+for _p in sorted(glob.glob(os.path.join(OUT_ROOT, "results*.jsonl"))):
+    _t = os.path.basename(_p)[len("results"):-len(".jsonl")].lstrip("_") or "base"
+    for _l in open(_p):
+        _l = _l.strip()
+        if _l:
+            try:
+                _r = json.loads(_l); _r["exp"] = _t; rs.append(_r)
+            except json.JSONDecodeError: pass
 assert rs, "henuz sonuc yok"
 df = pd.DataFrame(rs)
 present = [k for k in KEYS if k in df.columns]
-g = (df.groupby(["dataset", "category", "difficulty"])
+g = (df.groupby(["exp", "dataset", "category", "difficulty"])
        .agg(n=("model", "count"), has_parts=("has_parts", "first"),
             chamfer_in=("chamfer_in", "mean"), chamfer_out=("chamfer_out", "mean"),
             **{k: (k, "mean") for k in present}).reset_index())
 g["chamfer_x"] = g.chamfer_in / g.chamfer_out
-g = g.sort_values(["dataset", "category", "difficulty"],
+g = g.sort_values(["exp", "dataset", "category", "difficulty"],
                   key=lambda s: s.map({"simple": 0, "moderate": 1, "hard": 2}).fillna(s))
 pd.set_option("display.width", 260, "display.max_columns", 60)
 print(g.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
@@ -1147,7 +1166,7 @@ for _, r in g.iterrows():
         f"<td class='num{' best' if (pd.notna(r[k]) and best is not None and abs(r[k]-best) < 1e-9) else ''}'>"
         f"{_fmt(r[k])}</td>" for k in present)
     rows_html.append(
-        f"<tr><td>{r.dataset}</td><td>{r.category}</td><td>{r.difficulty}</td>"
+        f"<tr><td>{r.exp}</td><td>{r.dataset}</td><td>{r.category}</td><td>{r.difficulty}</td>"
         f"<td class='num'>{int(r.n)}</td><td class='num'>{r.chamfer_x:.2f}&times;</td>{tds}</tr>")
 
 hdr = "".join(f"<th class='num'>{k}</th>" for k in present)
@@ -1182,7 +1201,7 @@ font-family:ui-monospace,Menlo,monospace;font-size:.9em}}
 yöntem <span style="color:var(--best);font-weight:700">yeşil</span>. <code>&ndash;</code> =
 o veri setinde parça etiketi yok, yöntem çalıştırılamadı.</p>
 <div class="card"><table><thead><tr>
-<th>veri seti</th><th>kategori</th><th>zorluk</th><th class="num">n</th>
+<th>deney</th><th>veri seti</th><th>kategori</th><th>zorluk</th><th class="num">n</th>
 <th class="num">PoinTr kazanç</th>{hdr}</tr></thead><tbody>{''.join(rows_html)}</tbody></table></div>
 <div class="card"><p class="note">
 <b>PoinTr kazanç</b> = ham partial&rarr;GT Chamfer'ının tamamlama&rarr;GT'ye oranı; 1.0&times;
