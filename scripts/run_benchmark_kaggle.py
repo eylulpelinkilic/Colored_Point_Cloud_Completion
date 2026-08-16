@@ -35,6 +35,8 @@ import argparse, os, sys, subprocess, glob, shutil
 
 # ══════════════════════════ CONFIG — duzenlemek istedigin tek yer ══════════════════════════
 CONFIG = dict(
+    comp_points     = 2048,
+    categories      = [],
     datasets        = ["ours"],   # + "densepoint" (6.95 GB zip; Kaggle diski yeterli)
     models_per_cat  = 200,
     eval_n          = None,       # None = BUTUN test seti
@@ -50,6 +52,10 @@ ap.add_argument("--eval-n", type=int)
 ap.add_argument("--models-per-cat", type=int)
 ap.add_argument("--ddpm-epochs", type=int)
 ap.add_argument("--force-retrain", action="store_true")
+ap.add_argument("--comp-points", type=int, default=2048,
+                help="PoinTr ciktisi buna FPS'lenir; DDPM egitim yogunluguna yaklastirir")
+ap.add_argument("--categories", nargs="+", default=[],
+                help="bos = hepsi; ornek: --categories airplane")
 ap.add_argument("--skip-env", action="store_true")
 _a = ap.parse_args()
 for k, v in vars(_a).items():
@@ -98,13 +104,11 @@ def _seed_from_inputs(out_root):
 # -- hucre 0 --
 import os, sys, subprocess, glob
 
-# Kaggle: /kaggle/temp KAYDEDILMEZ (klon, PoinTr, HF onbellegi oraya),
-# /kaggle/working version ciktisi olarak KAYDEDILIR (sonuc, checkpoint, rapor).
 WORK = "/kaggle/temp/pcc_work"
 os.makedirs(WORK, exist_ok=True)
-DATA_ROOT = os.path.join(WORK, "pcc_data")        # gecici     # indirilen veri setleri
+DATA_ROOT = os.path.join(WORK, "pcc_data")     # indirilen veri setleri
 OUT_ROOT  = "/kaggle/working/pcc_out"             # KAYDEDILIR
-_seed_from_inputs(OUT_ROOT)                       # varsa onceki kosudan devam      # checkpoint + sonuc + rapor
+_seed_from_inputs(OUT_ROOT)      # checkpoint + sonuc + rapor
 for d in (DATA_ROOT, OUT_ROOT): os.makedirs(d, exist_ok=True)
 os.environ.setdefault("HF_HOME", os.path.join(DATA_ROOT, "hf_cache"))
 
@@ -253,7 +257,7 @@ print("checkpoint MB:", round(os.path.getsize(CKPT)/1e6, 1), "| importlar OK")
 # -- hucre 6 --
 import wandb
 _k = os.environ.get("WANDB_API_KEY")
-wandb.login(key=_k) if _k else wandb.login()   # Secrets/env
+wandb.login(key=_k) if _k else wandb.login()
 
 WANDB_PROJECT = "colored-pc-completion"
 WANDB_ENTITY  = None
@@ -263,8 +267,17 @@ print("wandb", wandb.__version__)
 # ═════════════ AYARLAR ═════════════
 RUN_DATASETS = ARGS.datasets      # + "omniobject3d", "3dcompat" (erisim alinca)
 DIFFICULTIES = ["simple", "moderate", "hard"]          # %25 / %50 / %75
+FRAME_DIFFICULTY = "moderate"   # frame aramasi BURADA olculur. simple'da partial zaten
+                                # nesnenin %75'i (Chamfer ~0.047) -> tamamlamanin onu
+                                # yenmesi imkansiz, verdict yanlis "BOZUK" veriyordu.
 N_MODELS_PER_CAT = ARGS.models_per_cat     # kategori basina (None = tamami)
 N_PTS            = 2048
+COMP_POINTS      = ARGS.comp_points   # PoinTr ciktisi (6144) buna FPS'lenir.
+                          # DDPM 2048 noktali bulutta egitiliyor ama cikarim
+                          # birlesim bulutunda kosuyor; 6144'te bu ~3.7x yogunluk
+                          # kaymasi demek, kNN komsulugu fiziksel olarak kuculuyor
+                          # ve model egitim dagiliminin disina dusuyor.
+ONLY_CATEGORIES  = ARGS.categories     # bos = hepsi; ["airplane"] gibi kisitlayabilirsin
 TEST_FRAC        = 0.25
 EVAL_N           = ARGS.eval_n      # degerlendirilen test modeli (None = tamami)
 N_SEEDS          = 1
@@ -528,8 +541,12 @@ def pointr_input(d):
     return _fps_np(src, POINTR_IN) if POINTR_IN and len(src) > POINTR_IN else src
 
 def complete_of(d, perm=None, sign=None):
-    """Bu modelin PoinTr tamamlaması. Boru hattının HER yeri bunu kullanmalı."""
-    return complete_geometry(pointr_input(d), perm, sign)
+    """Bu modelin PoinTr tamamlamasi. Boru hattinin HER yeri bunu kullanmali.
+       Cikti COMP_POINTS'e indirilir -> birlesim bulutu DDPM'in egitildigi
+       yogunluga yaklasir (bkz. AYARLAR hucresi)."""
+    comp = complete_geometry(pointr_input(d), perm, sign)
+    n = globals().get("COMP_POINTS")
+    return _fps_np(comp, n) if (n and len(comp) > n) else comp
 
 def nn_color(partial, comp):                   # BASELINE 1
     _, i = cKDTree(partial[:, :3]).query(comp[:, :3], k=1)
@@ -938,7 +955,8 @@ def cloud3d(xyz, rgb):
 T0 = time.time()
 for ds_name in RUN_DATASETS:
     spec = REGISTRY[ds_name]
-    for category in spec["cats"]:
+    cats = [c for c in spec["cats"] if not ONLY_CATEGORIES or c in ONLY_CATEGORIES]
+    for category in cats:
         tag = f"{ds_name}_{category}"
         print(f"\n{'='*64}\n  {ds_name.upper()} / {category}   ({(time.time()-T0)/60:.0f} dk)\n{'='*64}", flush=True)
         try:
@@ -956,7 +974,9 @@ for ds_name in RUN_DATASETS:
         print(f"  {len(DATA)} model | train {len(TRAIN_IDX)} / test {len(TEST_IDX)} | "
               f"parca: {NUM_PARTS if HAS_PARTS else 'YOK -> part-yontemleri atlanacak'}", flush=True)
 
-        AXIS_PERM, AXIS_SIGN, best, ref = find_frame(DATA, TRAIN_IDX)
+        # frame'i FRAME_DIFFICULTY'de olc: simple'da referans cok guclu, verdict yaniltici
+        _fd = DATA if FRAME_DIFFICULTY == DIFFICULTIES[0] else spec['load'](category, FRAME_DIFFICULTY)[0]
+        AXIS_PERM, AXIS_SIGN, best, ref = find_frame(_fd, TRAIN_IDX)
         verdict = "OK" if best < 0.6*ref else ("ZAYIF" if best < ref else "BOZUK")
         print(f"  frame {list(AXIS_PERM)}{list(AXIS_SIGN)} | chamfer {best:.4f} vs {ref:.4f} -> {verdict}",
               flush=True)
