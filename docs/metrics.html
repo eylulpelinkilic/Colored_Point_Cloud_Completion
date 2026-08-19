@@ -362,8 +362,11 @@ the trained model.</p>
     <tr><td>Within-part ΔE, real texture</td><td class="n">20.7</td><td>Structural ceiling for any part-constant coloring on real ShapeNet texture — no such method can score below this</td></tr>
     <tr><td>Within-part ΔE, synthetic texture</td><td class="n">5.5</td><td>The same ceiling on flat synthetic color; the 4× gap is why Stage-1 real texture was necessary</td></tr>
     <tr><td>Textured fraction of models</td><td class="n">74 %</td><td>Share of models with genuine texture (4 % flat) — the benchmark is not dominated by trivial cases</td></tr>
-    <tr><td>Joint-6D vs NN-copy, 9 cells</td><td class="n">+4.06 ± 0.94</td><td>Systematic, low-variance loss across every category and difficulty</td></tr>
-    <tr><td>RePaint-part vs NN-copy, airplane/hard</td><td class="n">+9.61 ± 3.04</td><td>The earlier arm; joint-6D roughly halves both the gap and its spread</td></tr>
+    <tr><td>Joint-6D vs NN-copy, 9 cells</td><td class="n">+4.06 ± 0.94</td><td>Systematic, low-variance loss across every category and difficulty — unlike the RePaint arm, which wins at the two lower levels</td></tr>
+    <tr><td>RePaint-part vs NN-copy, airplane<br><span style="color:var(--muted);font-size:.92em">simple / moderate / hard</span></td><td class="n">−4.30<br>−3.98<br>+2.99</td><td>Wins at two of three levels. Supersedes a pre-fix figure of +9.61 measured before the density shift and frame-verdict bugs were corrected</td></tr>
+    <tr><td>Part conditioning vs part-blind, airplane</td><td class="n">−4.9 … −7.0</td><td>RePaint-part against RePaint-vanilla, consistent across all three levels — the gain comes from part awareness, not from diffusion alone</td></tr>
+    <tr><td>RePaint-part vs oracle ceiling, airplane/simple</td><td class="n">−0.47</td><td>Beats the part-constant structural ceiling, so the model produces correct <em>within-part</em> variation rather than a per-part mean</td></tr>
+    <tr><td>Oracle part labels, airplane</td><td class="n">≤ 1.44</td><td>Most that perfect segmentation buys over the trained segmenter — segmentation is not the bottleneck</td></tr>
     <tr><td>Chamfer floor, 2048 points</td><td class="n">≈ 0.05</td><td>Best geometric precision observed at this resolution, independent of difficulty</td></tr>
   </tbody>
 </table>
