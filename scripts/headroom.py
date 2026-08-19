@@ -22,6 +22,7 @@ measured method spread, never instead of it.
 Usage:
     python scripts/headroom.py                             # ours, from $PCC_DATA_ROOT/labeled_s3
     python scripts/headroom.py --root /path/to/densepoint --format ply
+    python scripts/headroom.py --root /path/to/3dcompat --format hdf5
     python scripts/headroom.py --csv docs/headroom.csv
 """
 import argparse
@@ -109,7 +110,35 @@ def read_ply(path):
     return np.clip(rgb, 0, 1), (v[lab].astype(np.int64) if lab else None)
 
 
-READERS = {"npz": ("*.npz", read_npz), "ply": ("*.ply", read_ply)}
+def iter_hdf5(path):
+    """3DCoMPaT-style HDF5: one file holds MANY models, so this yields per model.
+
+    points (M,N,6) f32 = xyz + rgb (0..255), points_part_labels (M,N)."""
+    import h5py
+    with h5py.File(path, "r") as f:
+        if "points" not in f:
+            return
+        pts = f["points"][:]
+        lab = f["points_part_labels"][:] if "points_part_labels" in f else None
+        for i in range(len(pts)):
+            rgb = pts[i, :, 3:].astype(np.float64)
+            # 0..255 uchar-valued floats in 3DCoMPaT; some exports are already 0..1
+            rgb = rgb / 255.0 if rgb.max() > 1.5 else rgb
+            yield np.clip(rgb, 0, 1), (lab[i].astype(np.int64) if lab is not None else None)
+
+
+def _iter_one(reader):
+    """Wrap a single-model reader so every format looks like a generator."""
+    def go(path):
+        rgb, part = reader(path)
+        if rgb is not None:
+            yield rgb, part
+    return go
+
+
+READERS = {"npz": ("*.npz", _iter_one(read_npz)),
+           "ply": ("*.ply", _iter_one(read_ply)),
+           "hdf5": ("*.hdf5", iter_hdf5)}
 
 
 # ---------------------------------------------------------------- measurement
@@ -128,25 +157,25 @@ def measure(rgb, part):
 
 def scan(folder, pattern, reader, limit):
     files = sorted(glob.glob(os.path.join(folder, "**", pattern), recursive=True))
-    if limit:
-        files = files[:limit]
-    orc, glb, grey, parts = [], [], 0, set()
+    orc, glb, grey, parts, seen = [], [], 0, set(), 0
     for f in files:
         try:
-            rgb, part = reader(f)
+            for rgb, part in reader(f):
+                if limit and seen >= limit:
+                    break
+                seen += 1
+                if part is not None:
+                    parts.update(np.unique(part).tolist())
+                o, g, c = measure(rgb, part)
+                if o is not None:
+                    orc.append(o)
+                glb.append(g)
+                grey += c < GREY_CHROMA
         except Exception as e:                  # one unreadable file must not kill a sweep
             print(f"    [skip] {os.path.basename(f)}: {type(e).__name__}: {e}", file=sys.stderr)
-            continue
-        if rgb is None:
-            continue
-        if part is not None:
-            parts.update(np.unique(part).tolist())
-        o, g, c = measure(rgb, part)
-        if o is not None:
-            orc.append(o)
-        glb.append(g)
-        grey += c < GREY_CHROMA
-    return orc, glb, grey, parts, len(files)
+        if limit and seen >= limit:
+            break
+    return orc, glb, grey, parts, seen
 
 
 def main():
