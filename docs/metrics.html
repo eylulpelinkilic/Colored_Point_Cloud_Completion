@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metrics reference — colored point-cloud completion</title>
+<style>
+  :root{
+    --ink:#12181d; --muted:#5b6670; --faint:#8b959d;
+    --line:#dde3e8; --line-soft:#eef2f5;
+    --accent:#0e7490; --accent-ink:#0a5766; --accent-soft:#e6f3f6;
+    --warn-soft:#fdf4e3; --warn-line:#e6c886;
+    --surface:#f7f9fa;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"Helvetica Neue",-apple-system,system-ui,Arial,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  @page{ size:A4; margin:17mm 16mm 15mm; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{
+    margin:0; font-family:var(--sans); color:var(--ink);
+    font-size:9.7pt; line-height:1.52; background:#fff;
+  }
+  h1{font-family:var(--serif); font-size:20pt; line-height:1.16; margin:0 0 6px; letter-spacing:-.01em}
+  h2{
+    font-size:11.2pt; margin:20px 0 8px; padding-bottom:4px; letter-spacing:-.005em;
+    border-bottom:1.5px solid var(--accent); color:var(--accent-ink);
+    break-after:avoid; page-break-after:avoid;
+  }
+  h3{font-size:9.8pt; margin:13px 0 5px; color:var(--ink); break-after:avoid; page-break-after:avoid}
+  p{margin:0 0 8px}
+  code,.m{font-family:var(--mono); font-size:.885em}
+  code{background:var(--line-soft); padding:.08em .32em; border-radius:3px}
+  a{color:var(--accent-ink)}
+
+  .eyebrow{
+    font-family:var(--mono); font-size:7.6pt; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 9px;
+  }
+  header{border-bottom:2.5px solid var(--ink); padding-bottom:11px; margin-bottom:6px}
+  .sub{color:var(--muted); font-size:9.4pt; margin:7px 0 0; max-width:58em}
+  .meta{
+    display:flex; gap:22px; flex-wrap:wrap; font-family:var(--mono);
+    font-size:7.9pt; color:var(--faint); margin-top:9px;
+  }
+
+  table{border-collapse:collapse; width:100%; margin:9px 0 12px; font-size:8.6pt}
+  th,td{text-align:left; padding:4.5px 8px 4.5px 0; vertical-align:top; border-bottom:.75px solid var(--line)}
+  th{
+    font-size:7.4pt; text-transform:uppercase; letter-spacing:.075em; color:var(--muted);
+    border-bottom:1.2px solid var(--ink); font-weight:600; white-space:nowrap;
+  }
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{break-inside:avoid; page-break-inside:avoid}
+  td.k{font-family:var(--mono); white-space:nowrap; padding-right:12px; font-size:8.1pt}
+  td.n{font-family:var(--mono); text-align:right; white-space:nowrap}
+  .tw{width:100%; table-layout:fixed}
+  .derived td.k{white-space:normal}
+
+  .eq{
+    font-family:var(--mono); font-size:8.6pt; line-height:1.75;
+    background:var(--surface); border-left:2.5px solid var(--accent);
+    padding:8px 12px; margin:8px 0 11px; white-space:pre-wrap;
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  .note{
+    background:var(--accent-soft); border-left:2.5px solid var(--accent);
+    padding:8px 12px; margin:10px 0; break-inside:avoid; page-break-inside:avoid;
+  }
+  .warn{background:var(--warn-soft); border-left:2.5px solid var(--warn-line)}
+  .note p:last-child{margin-bottom:0}
+  .lbl{
+    font-family:var(--mono); font-size:7.3pt; letter-spacing:.11em; text-transform:uppercase;
+    color:var(--accent-ink); display:block; margin-bottom:3px;
+  }
+  .warn .lbl{color:#8a6420}
+
+  .scale{display:flex; margin:9px 0 4px; border:.75px solid var(--line); border-radius:3px; overflow:hidden}
+  .scale div{padding:5px 7px; font-size:7.5pt; line-height:1.3; border-right:.75px solid var(--line); flex:1}
+  .scale div:last-child{border-right:none}
+  .scale b{display:block; font-family:var(--mono); font-size:8.6pt; color:var(--accent-ink)}
+
+  ul{margin:0 0 9px; padding-left:16px}
+  li{margin-bottom:3.5px}
+  .avoid{break-inside:avoid; page-break-inside:avoid}
+  .pb{break-before:page; page-break-before:always}
+  footer{
+    margin-top:18px; padding-top:8px; border-top:.75px solid var(--line);
+    font-size:7.6pt; color:var(--faint); font-family:var(--mono);
+  }
+  strong{font-weight:640}
+  .tag{
+    font-family:var(--mono); font-size:7pt; padding:1px 5px; border-radius:9px;
+    background:var(--accent-soft); color:var(--accent-ink); white-space:nowrap;
+  }
+  .tag.b{background:#eceff1; color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Benchmark documentation</p>
+  <h1>Metrics reference</h1>
+  <p class="sub">Every quantity reported by the colored point-cloud completion benchmark: how it is
+  computed, what it can establish, and — just as important — what it cannot. Written so a number in a
+  W&amp;B table can be read without opening the notebook that produced it.</p>
+  <div class="meta">
+    <span>Colored_Point_Cloud_Completion</span>
+    <span>arms: RePaint-part · joint-6D (PDR)</span>
+    <span>3 categories × 3 difficulties</span>
+  </div>
+</header>
+
+<h2>1 · What is measured, and where</h2>
+
+<p>Every model contributes a ground-truth cloud <span class="m">X</span> of 8192 colored points, split by
+the occlusion protocol into a <strong>visible</strong> part <span class="m">V</span> (the input) and a
+<strong>missing</strong> part <span class="m">M</span>. The split is a genuine partition —
+<span class="m">V ∪ M = X</span> exactly — so the target is labelled ground truth, not an approximation.</p>
+
+<p><strong>All color error is measured on <span class="m">M</span> only.</strong> This is not a detail. The
+visible region is handed to the method as input; including it in the average lets a method score well by
+copying what it was given. On <code>simple</code> that would dilute the measurement by
+a factor of four.</p>
+
+<div class="note">
+  <span class="lbl">The correspondence problem</span>
+  <p>A method that also generates geometry does not produce a color <em>at</em> the ground-truth points —
+  it produces its own cloud <span class="m">G</span> somewhere near them. To score it, each missing
+  ground-truth point <span class="m">x ∈ M</span> is matched to its nearest generated point
+  <span class="m">i(x) = argmin<sub>g∈G</sub> ‖x − g‖</span>, and that point's color is the prediction.</p>
+  <p>This makes the color score depend on geometric accuracy. If <span class="m">i(x)</span> sits 10 % of
+  the object's radius away, the color fetched is the color of somewhere else. Section 7 exists to remove
+  this dependency.</p>
+</div>
+
+<h2>2 · Color error: ΔE in CIELAB</h2>
+
+<p>RGB distance is not perceptual — the same numeric step is a large visible change in some regions of the
+cube and invisible in others. Colors are therefore converted to CIELAB, a space built so that Euclidean
+distance approximates perceived difference, and compared there.</p>
+
+<div class="eq">sRGB → linear:   C_lin = C/12.92                    if C ≤ 0.04045
+                 = ((C + 0.055)/1.055)^2.4     otherwise
+
+linear → XYZ:    [X Y Z]ᵀ = M · [R G B]_lin      (sRGB primaries, D65)
+
+XYZ → Lab:       t = X/Xn, Y/Yn, Z/Zn           Wn = (0.95047, 1.0, 1.08883)
+                 f(t) = t^(1/3)                  if t &gt; δ³,  δ = 6/29
+                      = t/(3δ²) + 4/29           otherwise
+                 L* = 116·f(Y/Yn) − 16
+                 a* = 500·(f(X/Xn) − f(Y/Yn))
+                 b* = 200·(f(Y/Yn) − f(Z/Zn))
+
+ΔE (CIE76)  =  √( ΔL*² + Δa*² + Δb*² )</div>
+
+<p>The reported number is the <strong>mean ΔE over the missing points</strong>. The scale is absolute and
+carries a physical interpretation:</p>
+
+<div class="scale">
+  <div><b>&lt; 1</b>Not perceptible to the human eye</div>
+  <div><b>1 – 2</b>Perceptible on close inspection</div>
+  <div><b>2 – 10</b>Perceptible at a glance</div>
+  <div><b>10 – 30</b>Related colors, clearly different</div>
+  <div><b>&gt; 30</b>Effectively unrelated colors</div>
+</div>
+
+<p style="font-size:8.4pt;color:var(--muted);margin-top:2px">Commonly cited bands; the classic
+just-noticeable difference under controlled viewing is ΔE ≈ 2.3.</p>
+
+<div class="note warn avoid">
+  <span class="lbl">Known limitation</span>
+  <p>CIE76 is not perceptually uniform everywhere — it overstates differences in saturated blues and
+  understates them in some neutrals. CIEDE2000 corrects this but is not a metric (it violates the triangle
+  inequality), which makes averages and comparisons harder to defend. We report CIE76 for interpretability
+  and state the choice; a paper should say the same rather than imply uniformity it does not have.</p>
+</div>
+
+<h2>3 · Why ΔE structurally favours averaging</h2>
+
+<p>ΔE is a <strong>distortion</strong> metric. Like any expected-error measure, it is minimized by the
+conditional mean of the target given the observation, not by a plausible sample from the posterior:</p>
+
+<div class="eq">argmin<sub>ŷ</sub>  E[ ‖ŷ − y‖² | observation ]  =  E[ y | observation ]</div>
+
+<p>The consequence is structural, not incidental. A method that predicts the average color of what it
+cannot see will beat a method that commits to one specific, sharp, plausible answer — <em>even when the
+second output looks obviously better to a human</em>. Blau &amp; Michaeli (2018) prove distortion and
+perceptual quality are in direct tension: improving one past a point must cost the other.</p>
+
+<p>Two of our baselines are pure averaging procedures, and are therefore advantaged by construction:</p>
+
+<table>
+  <thead><tr><th style="width:20%">Baseline</th><th>Procedure</th><th style="width:34%">Why it is hard to beat on ΔE</th></tr></thead>
+  <tbody>
+    <tr><td class="k">NN-copy</td><td>Each predicted point takes the color of its nearest <em>visible</em> point</td><td>Locally optimal under spatial color smoothness; commits to no new information</td></tr>
+    <tr><td class="k">part-mean</td><td>Each point takes the mean color of its part</td><td>Literally the conditional mean, given oracle part labels</td></tr>
+    <tr><td class="k">global-mean</td><td>Every point takes the mean color of the visible region</td><td>The coarsest conditional mean; a floor, not a competitor</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="lbl">How to report responsibly</span>
+  <p>A generative method losing on ΔE is <em>expected</em> and is not by itself evidence that it is worse.
+  The honest framing pairs ΔE with a distribution-level measure, and reports the posterior mean of the
+  generative method explicitly (Section 7) so the sampling penalty is separated from model quality.</p>
+</div>
+
+<h2>4 · Geometry error: Chamfer distance</h2>
+
+<div class="eq">CD(A, B) = (1/|A|) Σ<sub>a∈A</sub> min<sub>b∈B</sub> ‖a − b‖₂
+         + (1/|B|) Σ<sub>b∈B</sub> min<sub>a∈A</sub> ‖a − b‖₂</div>
+
+<p>Symmetric, and L1 in the sense that distances enter unsquared — squared Chamfer lets a handful of
+outliers dominate. Both terms matter and mean different things: the first penalizes predicted points that
+sit nowhere near the surface (<em>precision</em>), the second penalizes surface left uncovered
+(<em>recall</em>).</p>
+
+<p>Clouds are centred and divided by their maximum radius before scoring, so the object fits a unit ball
+and Chamfer reads as a fraction of object size: <strong>CD = 0.05 means roughly 5 % of the object's
+radius</strong>. This makes values comparable across categories.</p>
+
+<h3>The ratio to doing nothing</h3>
+
+<div class="eq">chamfer_vs_partial_x  =  CD(partial, GT) / CD(generated, GT)</div>
+
+<p>Raw Chamfer answers "how good", this answers "was it worth running the model". Above 1, completion beats
+handing back the input untouched; at 1 the model has added nothing; below 1 it has made things worse. The
+denominator flips it so higher is better, matching every other "×" column.</p>
+
+<div class="note warn avoid">
+  <span class="lbl">Read this one carefully</span>
+  <p>The partial cloud is a <em>subset of the ground truth</em>: every point it contains is exactly right.
+  Its Chamfer is non-zero only through the recall term. So the ratio compares a high-precision /
+  low-coverage cloud against a full-coverage / lower-precision one, and it is expected to sit near 1 when
+  little is occluded. That is a property of the comparison, not a failure of the model.</p>
+</div>
+
+<h2>5 · Difficulty</h2>
+
+<p>Occlusion follows the PoinTr / ShapeNet-55 protocol: draw a random unit viewpoint <span class="m">v</span>,
+sort all points by distance to <span class="m">v</span>, and remove the nearest <span class="m">r·N</span>.
+The seed is recorded, so every partial is reproducible from the ground truth alone.</p>
+
+<table>
+  <thead><tr><th style="width:16%">Level</th><th style="width:14%">crop ratio r</th><th style="width:16%">visible</th><th>what it probes</th></tr></thead>
+  <tbody>
+    <tr><td class="k">simple</td><td class="n">0.25</td><td class="n">75 %</td><td>Refinement — most of the object is given</td></tr>
+    <tr><td class="k">moderate</td><td class="n">0.50</td><td class="n">50 %</td><td>Balanced completion</td></tr>
+    <tr><td class="k">hard</td><td class="n">0.75</td><td class="n">25 %</td><td>Genuine generation from a fragment</td></tr>
+  </tbody>
+</table>
+
+<div class="note warn avoid">
+  <span class="lbl">Empirical finding — this axis does not control color difficulty</span>
+  <p>Across a category, moving from 25 % to 75 % occlusion roughly doubles Chamfer but moves ΔE by only
+  about 2 units. Across categories, ΔE varies threefold (chair 12–18, airplane 21–27, car 30–38). Color
+  difficulty is set by <strong>texture complexity</strong>, not by how much is hidden. A colored-completion
+  benchmark that inherits difficulty levels from a geometry benchmark is therefore mislabelling its
+  own axis — a second, color-specific axis is needed.</p>
+</div>
+
+<h2>6 · Metric catalogue — main run</h2>
+
+<p>Logged per model to <code>joint6d/&lt;category&gt;/&lt;difficulty&gt;</code>, aggregated into
+<code>SUMMARY-joint6d</code>.</p>
+
+<table class="tw">
+  <thead><tr><th style="width:23%">Column</th><th style="width:11%">Better</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td class="k">chamfer_gen</td><td><span class="tag b">lower</span></td><td>CD(generated, GT) — geometric error of the produced cloud</td></tr>
+    <tr><td class="k">chamfer_partial</td><td><span class="tag b">—</span></td><td>CD(partial, GT) — reference, the cost of returning the input unchanged</td></tr>
+    <tr><td class="k">chamfer_vs_partial_x</td><td><span class="tag">higher</span></td><td>Ratio of the two; &gt; 1 means completion earned its keep</td></tr>
+    <tr><td class="k">dE_joint6d</td><td><span class="tag b">lower</span></td><td>Mean ΔE on <span class="m">M</span>, prediction fetched through the nearest-generated-point map <span class="m">i(x)</span></td></tr>
+    <tr><td class="k">dE_nn_on_gen</td><td><span class="tag b">lower</span></td><td>Same map, but colors come from NN-copy instead of the model. <strong>Same geometry, same correspondence</strong> — the difference isolates coloring</td></tr>
+  </tbody>
+</table>
+
+<p>Pairing <code>dE_joint6d</code> with <code>dE_nn_on_gen</code> rather than an absolute threshold is
+deliberate: both travel through the identical geometry and the identical nearest-neighbour map, so
+whatever error those introduce is common to both and cancels in the comparison.</p>
+
+<h2>7 · Metric catalogue — ablation</h2>
+
+<p>The main-run gap conflates three separate effects. The ablation notebook trains nothing; it reloads the
+checkpoints and separates them.</p>
+
+<h3>free — the main-run setup, with K samples</h3>
+<p>Geometry and color both generated. <span class="m">K = 5</span> samples per model.</p>
+
+<h3>anchor — geometry pinned to ground truth</h3>
+<p>At every diffusion step the xyz channel is replaced by the correctly-noised ground-truth geometry, so
+only color evolves freely — the channel-wise form of RePaint's replacement trick:</p>
+
+<div class="eq">for t = T−1 … 0:
+    x  ←  [ q_sample(X_gt, t) ‖ x_rgb ]      # xyz pinned at noise level t
+    x  ←  p_sample( model(x, t, cond), x, t )</div>
+
+<p>Generated color then lands <em>exactly on</em> the ground-truth points, <span class="m">i(x)</span>
+becomes the identity, and the correspondence drops out of the measurement entirely. What remains is pure
+color error. The model was not trained this way — it is an inference-time diagnostic, not a claim about
+the trained model.</p>
+
+<table class="tw">
+  <thead><tr><th style="width:26%">Column</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td class="k">dE_free_sample</td><td>Mean over K samples of the per-sample ΔE. Reproduces the main-run metric</td></tr>
+    <tr><td class="k">dE_free_postmean</td><td>ΔE of the <em>color-space average</em> of the K samples — the posterior-mean estimate ΔE actually rewards</td></tr>
+    <tr><td class="k">dE_free_nn</td><td>NN-copy on the generated geometry (main-run baseline, recomputed as a control)</td></tr>
+    <tr><td class="k">dE_anchor_sample</td><td>Per-sample ΔE with geometry pinned to GT</td></tr>
+    <tr><td class="k">dE_anchor_postmean</td><td>K-sample color average, geometry pinned to GT — <strong>the cleanest measure of the model's coloring</strong></td></tr>
+    <tr><td class="k">dE_anchor_nn</td><td>NN-copy evaluated on GT geometry — the baseline on identical footing</td></tr>
+    <tr><td class="k">dE_anchor_global</td><td>Every missing point painted the mean color of the visible region — the prior floor</td></tr>
+  </tbody>
+</table>
+
+<h2>8 · Derived quantities, and how to read them</h2>
+
+<table class="tw derived">
+  <thead><tr><th style="width:19%">Quantity</th><th style="width:34%">Definition</th><th>Reading</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="k">sampling_penalty</td><td class="k">free_sample − free_postmean</td>
+      <td><strong>Positive</strong> → part of the gap is the variance cost of drawing one sample, not model quality. Large values mean ΔE is penalizing the act of sampling</td>
+    </tr>
+    <tr>
+      <td class="k">geometry_penalty</td><td class="k">free_sample − anchor_sample</td>
+      <td><strong>Positive</strong> → the nearest-neighbour correspondence was inflating the color score. This is measurement error, not coloring error</td>
+    </tr>
+    <tr>
+      <td class="k">gap_free</td><td class="k">free_sample − free_nn</td>
+      <td>The main-run headline, recomputed. Serves as a consistency check against the original run</td>
+    </tr>
+    <tr>
+      <td class="k">gap_anchored</td><td class="k">anchor_postmean − anchor_nn</td>
+      <td><strong>The decisive number.</strong> Both sides on ground-truth geometry, both at their best form. Negative means the generative model genuinely beats NN-copy</td>
+    </tr>
+    <tr>
+      <td class="k">prior_margin</td><td class="k">anchor_global − anchor_postmean</td>
+      <td><strong>Positive</strong> → the model beats a constant color, so conditioning is doing something. <strong>Near zero</strong> → the color head is emitting a category prior and ignoring the visible colors</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="lbl">The decomposition</span>
+  <p>Read together: <span class="m">gap_free</span> is what was published;
+  <span class="m">sampling_penalty</span> and <span class="m">geometry_penalty</span> say how much of it was
+  method artefact; <span class="m">gap_anchored</span> is what survives once both are removed. If
+  <span class="m">gap_anchored</span> stays positive, the negative result is real and reportable. If it
+  goes negative, the original conclusion was an artefact of single-sample evaluation through a noisy
+  correspondence — a materially different paper.</p>
+</div>
+
+<h2>9 · Reference values</h2>
+
+<p>Numbers to anchor any new result against. All are ΔE unless noted.</p>
+
+<table class="tw">
+  <thead><tr><th style="width:34%">Quantity</th><th style="width:14%">Value</th><th>What it establishes</th></tr></thead>
+  <tbody>
+    <tr><td>Within-part ΔE, real texture</td><td class="n">20.7</td><td>Structural ceiling for any part-constant coloring on real ShapeNet texture — no such method can score below this</td></tr>
+    <tr><td>Within-part ΔE, synthetic texture</td><td class="n">5.5</td><td>The same ceiling on flat synthetic color; the 4× gap is why Stage-1 real texture was necessary</td></tr>
+    <tr><td>Textured fraction of models</td><td class="n">74 %</td><td>Share of models with genuine texture (4 % flat) — the benchmark is not dominated by trivial cases</td></tr>
+    <tr><td>Joint-6D vs NN-copy, 9 cells</td><td class="n">+4.06 ± 0.94</td><td>Systematic, low-variance loss across every category and difficulty</td></tr>
+    <tr><td>RePaint-part vs NN-copy, airplane/hard</td><td class="n">+9.61 ± 3.04</td><td>The earlier arm; joint-6D roughly halves both the gap and its spread</td></tr>
+    <tr><td>Chamfer floor, 2048 points</td><td class="n">≈ 0.05</td><td>Best geometric precision observed at this resolution, independent of difficulty</td></tr>
+  </tbody>
+</table>
+
+<h2>10 · What these metrics cannot tell you</h2>
+
+<ul>
+  <li><strong>Whether a result looks right.</strong> ΔE is a per-point average and is blind to spatial
+  structure — a prediction with correct colors in wrong places can score identically to one with the
+  arrangement right. No distribution- or structure-level metric is currently reported.</li>
+  <li><strong>Whether the method is better for a human viewer.</strong> Distortion and perceptual quality
+  are provably in tension (Section 3). Winning on ΔE is not winning on appearance, and losing on it is not
+  losing on appearance.</li>
+  <li><strong>Anything about categories outside the three benchmarked.</strong> ΔE level is governed by
+  texture complexity, which varies threefold within these three alone. Extrapolation is unjustified.</li>
+  <li><strong>Statistical significance.</strong> Aggregates are means over 15 test models per cell.
+  Spreads are reported where they exist; no significance test is run, and none should be implied.</li>
+</ul>
+
+<footer>
+  docs/metrics.html · regenerate the PDF with Chrome headless --print-to-pdf ·
+  definitions track Joint6D_PDR_benchmark.ipynb and Joint6D_ablation.ipynb
+</footer>
+
+</body>
+</html>
