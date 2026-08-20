@@ -1,0 +1,440 @@
+<title>Part conditioning evidence</title>
+<style>
+  :root{
+    --ink:#12181d; --muted:#5b6670; --faint:#8b959d;
+    --line:#dde3e8; --line-soft:#eef2f5;
+    --accent:#0e7490; --accent-ink:#0a5766; --accent-soft:#e6f3f6;
+    --warn-soft:#fdf4e3; --warn-line:#e6c886;
+    --surface:#f7f9fa;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"Helvetica Neue",-apple-system,system-ui,Arial,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{
+    margin:0; font-family:var(--sans); color:var(--ink);
+    font-size:13.0px; line-height:1.52; background:#fff;
+  }
+  h1{font-family:var(--serif); font-size:26.8px; line-height:1.16; margin:0 0 6px; letter-spacing:-.01em}
+  h2{
+    font-size:15.0px; margin:20px 0 8px; padding-bottom:4px; letter-spacing:-.005em;
+    border-bottom:1.5px solid var(--accent); color:var(--accent-ink);
+    break-after:avoid; page-break-after:avoid;
+  }
+  h3{font-size:13.1px; margin:13px 0 5px; color:var(--ink); break-after:avoid; page-break-after:avoid}
+  p{margin:0 0 8px}
+  code,.m{font-family:var(--mono); font-size:.885em}
+  code{background:var(--line-soft); padding:.08em .32em; border-radius:3px}
+  a{color:var(--accent-ink)}
+
+  .eyebrow{
+    font-family:var(--mono); font-size:10.2px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 9px;
+  }
+  header{border-bottom:2.5px solid var(--ink); padding-bottom:11px; margin-bottom:6px}
+  .sub{color:var(--muted); font-size:12.6px; margin:7px 0 0; max-width:58em}
+  .meta{
+    display:flex; gap:22px; flex-wrap:wrap; font-family:var(--mono);
+    font-size:10.6px; color:var(--faint); margin-top:9px;
+  }
+
+  table{border-collapse:collapse; width:100%; margin:9px 0 12px; font-size:11.5px}
+  th,td{text-align:left; padding:4.5px 8px 4.5px 0; vertical-align:top; border-bottom:.75px solid var(--line)}
+  th{
+    font-size:9.9px; text-transform:uppercase; letter-spacing:.075em; color:var(--muted);
+    border-bottom:1.2px solid var(--ink); font-weight:600;
+  }
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{break-inside:avoid; page-break-inside:avoid}
+  td.k{font-family:var(--mono); white-space:nowrap; padding-right:12px; font-size:10.9px}
+  td.n{font-family:var(--mono); text-align:right; white-space:nowrap}
+  .tw{width:100%; table-layout:fixed}
+  .derived td.k{white-space:normal}
+
+  .eq{
+    font-family:var(--mono); font-size:11.5px; line-height:1.75;
+    background:var(--surface); border-left:2.5px solid var(--accent);
+    padding:8px 12px; margin:8px 0 11px; white-space:pre-wrap;
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  .note{
+    background:var(--accent-soft); border-left:2.5px solid var(--accent);
+    padding:8px 12px; margin:10px 0; break-inside:avoid; page-break-inside:avoid;
+  }
+  .warn{background:var(--warn-soft); border-left:2.5px solid var(--warn-line)}
+  .note p:last-child{margin-bottom:0}
+  .lbl{
+    font-family:var(--mono); font-size:9.8px; letter-spacing:.11em; text-transform:uppercase;
+    color:var(--accent-ink); display:block; margin-bottom:3px;
+  }
+  .warn .lbl{color:#8a6420}
+
+  .scale{display:flex; margin:9px 0 4px; border:.75px solid var(--line); border-radius:3px; overflow:hidden}
+  .scale div{padding:5px 7px; font-size:10.1px; line-height:1.3; border-right:.75px solid var(--line); flex:1}
+  .scale div:last-child{border-right:none}
+  .scale b{display:block; font-family:var(--mono); font-size:11.5px; color:var(--accent-ink)}
+
+  ul{margin:0 0 9px; padding-left:16px}
+  li{margin-bottom:3.5px}
+  .avoid{break-inside:avoid; page-break-inside:avoid}
+  .pb{break-before:page; page-break-before:always}
+  footer{
+    margin-top:18px; padding-top:8px; border-top:.75px solid var(--line);
+    font-size:10.2px; color:var(--faint); font-family:var(--mono);
+  }
+  strong{font-weight:640}
+  .tag{
+    font-family:var(--mono); font-size:9.4px; padding:1px 5px; border-radius:9px;
+    background:var(--accent-soft); color:var(--accent-ink); white-space:nowrap;
+  }
+  .tag.b{background:#eceff1; color:var(--muted)}
+</style>
+<style>
+  .verdict{display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin:12px 0 14px}
+  .v{border:.75px solid var(--line); border-left:2.5px solid var(--accent);
+     padding:8px 11px; break-inside:avoid}
+  .v.no{border-left-color:#b45309}
+  .v .h{font-family:var(--mono); font-size:9.8px; letter-spacing:.1em; text-transform:uppercase;
+        color:var(--accent-ink); margin-bottom:3px}
+  .v.no .h{color:#8a6420}
+  .v .n{font-family:var(--mono); font-size:20.1px; line-height:1.1; margin:1px 0 3px}
+  .v p{margin:0; font-size:11.4px; color:var(--muted)}
+  td.win{color:var(--accent-ink); font-weight:640}
+  td.bad{color:#8a6420}
+  tr.invalid td{color:var(--faint)}
+  .grid27 th{white-space:normal; line-height:1.25}
+  .grid27 th.n{text-align:right}
+  .grid27 td:first-child{padding-right:6px}
+  .rule{font-family:var(--mono); font-size:11.8px; background:var(--surface);
+        border-left:2.5px solid var(--accent); padding:7px 11px; margin:8px 0 10px}
+</style>
+<style>
+  /* --- ekran katmani: baski dosyasinin uzerine --- */
+  :root{
+    --bg:#f3f5f6;
+    --shadow:0 1px 2px rgba(20,40,60,.05), 0 10px 34px rgba(20,40,60,.07);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9eef1; --muted:#a2b0b8; --faint:#71808a;
+      --line:#28343d; --line-soft:#1a242b; --surface:#151e24;
+      --accent:#3fb6cf; --accent-ink:#93dceb; --accent-soft:#0f2d37;
+      --warn-soft:#241f14; --warn-line:#6f5828;
+      --bg:#0c1216;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9eef1; --muted:#a2b0b8; --faint:#71808a;
+    --line:#28343d; --line-soft:#1a242b; --surface:#151e24;
+    --accent:#3fb6cf; --accent-ink:#93dceb; --accent-soft:#0f2d37;
+    --warn-soft:#241f14; --warn-line:#6f5828;
+    --bg:#0c1216;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.45);
+  }
+  body{
+    background:var(--bg); color:var(--ink);
+    padding:clamp(14px, 3.5vw, 48px) clamp(12px, 4vw, 40px);
+    font-size:15px; line-height:1.62;
+  }
+  .sheet{
+    max-width:60rem; margin:0 auto; background:var(--surface-page, #fff);
+    padding:clamp(20px, 4.5vw, 60px); border-radius:3px; box-shadow:var(--shadow);
+  }
+  :root{ --surface-page:#fff }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --surface-page:#101a20 } }
+  :root[data-theme="dark"]{ --surface-page:#101a20 }
+
+  h1{font-size:2.45rem}
+  h2{font-size:1.16rem; margin-top:2.1rem}
+  h3{font-size:1rem}
+  .sub{font-size:1.03rem}
+  table{font-size:.86rem}
+  .grid27{font-size:.79rem}
+  th{font-size:.68rem}
+  .eq,.rule{font-size:.83rem; overflow-x:auto}
+  .v .n{font-size:1.7rem}
+  /* genis tablolar sayfayi yana kaydirmasin */
+  table{display:block; overflow-x:auto; white-space:normal}
+  .verdict{grid-template-columns:repeat(auto-fit, minmax(15rem, 1fr))}
+  .pb{break-before:auto}
+  a:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  @media print{
+    body{background:#fff; padding:0; font-size:9.7pt}
+    .sheet{max-width:none; box-shadow:none; padding:0; border-radius:0}
+  }
+</style>
+<div class="sheet">
+
+<header>
+  <p class="eyebrow">Benchmark results &middot; 13&ndash;20 August 2026</p>
+  <h1>Evidence review</h1>
+  <p class="sub">Twenty-seven measured cells across two method arms and five datasets, read against
+  what each one can actually establish. Several conclusions carried through the week do not survive
+  the full table; they are corrected here rather than quietly dropped.</p>
+  <div class="meta">
+    <span>arms: RePaint-part &middot; joint-6D</span>
+    <span>datasets: ours &middot; 3DCoMPaT200 &middot; DensePoint &middot; PartNeXt</span>
+    <span>source: W&amp;B <code>colored-pc-completion</code></span>
+  </div>
+</header>
+
+<h2>1 &middot; The ledger</h2>
+
+<p>Across all 27 cells of the RePaint arm, counting how often each method beats the
+<strong>NN-copy</strong> baseline &mdash; copy the colour of the nearest visible point:</p>
+
+<div class="verdict">
+  <div class="v no"><div class="h">RePaint-vanilla (part-blind)</div><div class="n">0 / 27</div>
+    <p>Never wins. Diffusion alone, without part information, loses in every single cell.</p></div>
+  <div class="v"><div class="h">part-mean (oracle labels)</div><div class="n">12 / 27</div>
+    <p>A flat per-part average beats the baseline in nearly half the cells &mdash; the part label
+    carries real information.</p></div>
+  <div class="v"><div class="h">RePaint-part (oracle labels)</div><div class="n">5 / 27</div>
+    <p>All five sit in the two configurations where the part-constant ceiling is far below
+    NN-copy. That is not a coincidence &mdash; see &sect;5.</p></div>
+  <div class="v no"><div class="h">RePaint-part (trained segmenter)</div><div class="n">3 / 27</div>
+    <p>Two clear wins, both <code>ours/airplane/long4k</code>. The third is a 0.10&nbsp;dE margin
+    and should not be counted.</p></div>
+</div>
+
+<div class="note">
+  <span class="lbl">The one clean result</span>
+  <p><strong>Part-blind diffusion never beats the trivial baseline &mdash; 0 out of 27.</strong> Adding
+  part conditioning moves the same architecture to 5 wins with accurate labels. Whatever else is
+  uncertain, the gain in this system comes from part awareness, not from diffusion.</p>
+</div>
+
+<h2>2 &middot; Most rows are not evidence</h2>
+
+<p>The runs were not made under one configuration. Reading them as a single table is the mistake that
+produced two wrong conclusions this week.</p>
+
+<table class="tw">
+  <thead><tr><th style="width:15%">exp tag</th><th style="width:13%">DDPM<br>epochs</th>
+    <th style="width:14%">comp_<br>points</th><th style="width:14%">frame<br>verdict</th><th>status</th></tr></thead>
+  <tbody>
+    <tr><td class="k">base</td><td class="n">300</td><td class="n">none</td><td class="k">BOZUK</td>
+      <td><strong>Not usable.</strong> Three defects at once: short training, the density-shift bug
+      unfixed, and PoinTr failing to recognise the shape at all</td></tr>
+    <tr><td class="k">long4k</td><td class="n">4000</td><td class="n">2048</td><td class="k">OK</td>
+      <td><strong>Valid.</strong> The only sound <code>ours</code> configuration &mdash; and it covers
+      airplane only</td></tr>
+    <tr><td class="k">multi3</td><td class="n">300</td><td class="n">2048</td><td class="k">OK / ZAYIF</td>
+      <td><strong>Undertrained.</strong> Geometry fixed, but at the training budget already shown to
+      be insufficient</td></tr>
+  </tbody>
+</table>
+
+<p>Every <code>ours/car</code> and <code>ours/chair</code> row is <code>base</code>. Their numbers &mdash;
+chair at 46.43&nbsp;dE against a baseline of 12.92 &mdash; describe a broken configuration, not a method.</p>
+
+<h2>3 &middot; Training budget flips the sign</h2>
+
+<p>Same category, same data, same code. Only the configuration differs:</p>
+
+<table class="tw">
+  <thead><tr><th style="width:16%">ours / airplane</th><th style="width:14%">exp</th>
+    <th style="width:12%">epochs</th><th style="width:14%">NN</th>
+    <th style="width:16%">RePaint<br>part</th><th>margin</th></tr></thead>
+  <tbody>
+    <tr class="invalid"><td>simple</td><td class="k">base</td><td class="n">300</td><td class="n">18.15</td><td class="n">22.25</td><td class="n bad">+4.10</td></tr>
+    <tr><td>simple</td><td class="k">long4k</td><td class="n">4000</td><td class="n">19.19</td><td class="n">14.90</td><td class="n win">&minus;4.30</td></tr>
+    <tr class="invalid"><td>moderate</td><td class="k">base</td><td class="n">300</td><td class="n">21.63</td><td class="n">25.38</td><td class="n bad">+3.74</td></tr>
+    <tr><td>moderate</td><td class="k">long4k</td><td class="n">4000</td><td class="n">23.93</td><td class="n">19.95</td><td class="n win">&minus;3.98</td></tr>
+    <tr class="invalid"><td>hard</td><td class="k">base</td><td class="n">300</td><td class="n">18.23</td><td class="n">27.84</td><td class="n bad">+9.61</td></tr>
+    <tr><td>hard</td><td class="k">long4k</td><td class="n">4000</td><td class="n">19.71</td><td class="n">22.70</td><td class="n bad">+2.99</td></tr>
+  </tbody>
+</table>
+
+<p>A 7.3&nbsp;dE swing at the two lower difficulties, enough to reverse the conclusion. The
+<strong>+9.61</strong> figure carried through most of this week is the <code>base/hard</code> cell &mdash;
+a number from the unusable configuration.</p>
+
+<div class="note warn avoid">
+  <span class="lbl">What this means for the three new datasets</span>
+  <p>The <code>multi3</code> sweep &mdash; 3DCoMPaT200, DensePoint and PartNeXt &mdash; ran at
+  <strong>300 epochs</strong>. That is the budget just shown to invert the result on data where the
+  method does work. Those rows cannot be read as a verdict on part conditioning. They can still be
+  read for what &sect;5 and &sect;6 extract from them, because those arguments run through the oracle
+  rows, which do not depend on the trained denoiser.</p>
+</div>
+
+<h2 class="pb">4 &middot; All 27 cells</h2>
+
+<p>Mean &Delta;E on the missing region; lower is better. <span class="tag">teal</span> marks a method
+beating NN-copy. Greyed rows are the unusable <code>base</code> configuration.</p>
+
+<table class="tw grid27" style="font-size:8.1pt">
+  <thead><tr>
+    <th style="width:19%">dataset / category</th><th style="width:8%">diff</th>
+    <th class="n" style="width:9%">NN-copy</th><th class="n" style="width:9%">part<br>mean</th>
+    <th class="n" style="width:9%">vanilla</th><th class="n" style="width:10%">RePaint-part</th>
+    <th class="n" style="width:10%">oracle<br>seg</th><th class="n" style="width:9%">ceiling</th>
+    <th class="n" style="text-align:right">seg</th></tr></thead>
+  <tbody>
+    <tr class=""><td>3dcompat / chair <span class="tag b">multi3</span></td><td class="k">simple</td><td class="n">19.94</td><td class="n">25.38</td><td class="n">27.59</td><td class="n">21.88</td><td class="n win">13.37</td><td class="n win">5.07</td><td class="n">57.1%</td></tr>
+    <tr class=""><td></td><td class="k">moderate</td><td class="n">21.63</td><td class="n">28.55</td><td class="n">31.65</td><td class="n">23.46</td><td class="n win">13.66</td><td class="n win">5.30</td><td class="n">57.1%</td></tr>
+    <tr class=""><td></td><td class="k">hard</td><td class="n">28.45</td><td class="n">32.24</td><td class="n">34.57</td><td class="n win">28.35</td><td class="n win">21.57</td><td class="n win">5.45</td><td class="n">57.1%</td></tr>
+    <tr class=""><td>densepoint / chair <span class="tag b">multi3</span></td><td class="k">simple</td><td class="n">19.64</td><td class="n">20.32</td><td class="n">30.27</td><td class="n">24.80</td><td class="n">24.38</td><td class="n">20.01</td><td class="n">85.5%</td></tr>
+    <tr class=""><td></td><td class="k">moderate</td><td class="n">23.05</td><td class="n win">21.68</td><td class="n">33.68</td><td class="n">27.62</td><td class="n">27.91</td><td class="n win">20.16</td><td class="n">85.5%</td></tr>
+    <tr class=""><td></td><td class="k">hard</td><td class="n">23.34</td><td class="n win">23.23</td><td class="n">36.64</td><td class="n">34.69</td><td class="n">31.89</td><td class="n win">19.99</td><td class="n">85.5%</td></tr>
+    <tr class="invalid"><td>ours / airplane</td><td class="k">simple</td><td class="n">18.15</td><td class="n">15.43</td><td class="n">28.45</td><td class="n">22.25</td><td class="n">22.17</td><td class="n">14.17</td><td class="n">85.5%</td></tr>
+    <tr class="invalid"><td></td><td class="k">moderate</td><td class="n">21.63</td><td class="n">19.79</td><td class="n">30.48</td><td class="n">25.38</td><td class="n">25.67</td><td class="n">16.74</td><td class="n">85.5%</td></tr>
+    <tr class="invalid"><td></td><td class="k">hard</td><td class="n">18.23</td><td class="n">19.95</td><td class="n">33.48</td><td class="n">27.84</td><td class="n">28.29</td><td class="n">17.29</td><td class="n">85.5%</td></tr>
+    <tr class=""><td>ours / airplane <span class="tag b">long4k</span></td><td class="k">simple</td><td class="n">19.19</td><td class="n win">17.66</td><td class="n">20.31</td><td class="n win">14.90</td><td class="n win">15.16</td><td class="n win">15.37</td><td class="n">85.0%</td></tr>
+    <tr class=""><td></td><td class="k">moderate</td><td class="n">23.93</td><td class="n win">21.96</td><td class="n">26.93</td><td class="n win">19.95</td><td class="n win">19.58</td><td class="n win">18.38</td><td class="n">85.0%</td></tr>
+    <tr class=""><td></td><td class="k">hard</td><td class="n">19.71</td><td class="n">21.24</td><td class="n">27.63</td><td class="n">22.70</td><td class="n">21.26</td><td class="n win">18.32</td><td class="n">85.0%</td></tr>
+    <tr class="invalid"><td>ours / car</td><td class="k">simple</td><td class="n">29.62</td><td class="n">34.59</td><td class="n">48.74</td><td class="n">40.53</td><td class="n">39.94</td><td class="n">31.72</td><td class="n">80.5%</td></tr>
+    <tr class="invalid"><td></td><td class="k">moderate</td><td class="n">29.73</td><td class="n">34.90</td><td class="n">51.17</td><td class="n">44.26</td><td class="n">44.08</td><td class="n">31.08</td><td class="n">80.5%</td></tr>
+    <tr class="invalid"><td></td><td class="k">hard</td><td class="n">34.88</td><td class="n">35.54</td><td class="n">51.15</td><td class="n">48.82</td><td class="n">47.58</td><td class="n">31.39</td><td class="n">80.5%</td></tr>
+    <tr class="invalid"><td>ours / chair</td><td class="k">simple</td><td class="n">11.82</td><td class="n">14.09</td><td class="n">59.53</td><td class="n">35.54</td><td class="n">38.21</td><td class="n">11.74</td><td class="n">84.7%</td></tr>
+    <tr class="invalid"><td></td><td class="k">moderate</td><td class="n">11.67</td><td class="n">13.81</td><td class="n">64.97</td><td class="n">44.67</td><td class="n">45.73</td><td class="n">11.47</td><td class="n">84.7%</td></tr>
+    <tr class="invalid"><td></td><td class="k">hard</td><td class="n">12.92</td><td class="n">14.75</td><td class="n">80.83</td><td class="n">46.43</td><td class="n">49.93</td><td class="n">11.34</td><td class="n">84.7%</td></tr>
+    <tr class="invalid"><td>ours (early) / airplane</td><td class="k">simple</td><td class="n">20.33</td><td class="n">18.56</td><td class="n">37.90</td><td class="n">29.51</td><td class="n">30.13</td><td class="n">16.65</td><td class="n">85.0%</td></tr>
+    <tr class="invalid"><td></td><td class="k">moderate</td><td class="n">22.62</td><td class="n">20.60</td><td class="n">41.30</td><td class="n">32.92</td><td class="n">33.23</td><td class="n">17.47</td><td class="n">85.0%</td></tr>
+    <tr class="invalid"><td></td><td class="k">hard</td><td class="n">23.03</td><td class="n">22.03</td><td class="n">42.03</td><td class="n">36.84</td><td class="n">36.99</td><td class="n">17.54</td><td class="n">85.0%</td></tr>
+    <tr class="invalid"><td>ours (early) / car</td><td class="k">simple</td><td class="n">31.12</td><td class="n">34.96</td><td class="n">50.53</td><td class="n">57.71</td><td class="n">58.11</td><td class="n">32.61</td><td class="n">83.2%</td></tr>
+    <tr class="invalid"><td></td><td class="k">moderate</td><td class="n">31.99</td><td class="n">35.34</td><td class="n">47.99</td><td class="n">62.22</td><td class="n">62.21</td><td class="n">32.37</td><td class="n">83.2%</td></tr>
+    <tr class="invalid"><td></td><td class="k">hard</td><td class="n">36.96</td><td class="n">35.42</td><td class="n">48.44</td><td class="n">62.14</td><td class="n">62.19</td><td class="n">32.60</td><td class="n">83.2%</td></tr>
+    <tr class=""><td>partnext / chair <span class="tag b">multi3</span></td><td class="k">simple</td><td class="n">7.77</td><td class="n">10.52</td><td class="n">21.15</td><td class="n">17.20</td><td class="n">18.86</td><td class="n">8.24</td><td class="n">73.8%</td></tr>
+    <tr class=""><td></td><td class="k">moderate</td><td class="n">11.07</td><td class="n win">9.58</td><td class="n">33.52</td><td class="n">20.73</td><td class="n">21.41</td><td class="n win">8.33</td><td class="n">73.8%</td></tr>
+    <tr class=""><td></td><td class="k">hard</td><td class="n">9.92</td><td class="n win">9.51</td><td class="n">39.51</td><td class="n">24.95</td><td class="n">27.17</td><td class="n win">7.58</td><td class="n">73.8%</td></tr>
+  </tbody>
+</table>
+
+<h2>5 &middot; The ceiling predicts what is possible</h2>
+
+<p>The <strong>oracle ceiling</strong> paints every point its own part's true mean colour. No
+part-constant method can score below it. Comparing that ceiling to NN-copy says, before any model is
+trained, whether part information can help at all in a given cell.</p>
+
+<div class="rule">margin = oracle ceiling &minus; NN-copy       (negative = parts carry usable signal)</div>
+
+<table class="tw">
+  <thead><tr><th style="width:30%">margin</th><th style="width:12%">cells</th>
+    <th style="width:22%">oracle-seg beats NN</th><th>mean oracle-seg result</th></tr></thead>
+  <tbody>
+    <tr><td>ceiling more than 8 dE below NN</td><td class="n">3</td><td class="n win">3 / 3</td><td class="n win">&minus;7.14 dE</td></tr>
+    <tr><td>between 2 and 8 dE below</td><td class="n">13</td><td class="n">2 / 13</td><td class="n bad">+8.69 dE</td></tr>
+    <tr><td>less than 2 dE below, or above</td><td class="n">11</td><td class="n bad">0 / 11</td><td class="n bad">+18.80 dE</td></tr>
+  </tbody>
+</table>
+
+<p>Monotone, and the correlation across all 27 cells is <strong>r = 0.61</strong>. The rule is one-directional
+and that is how it should be used: <strong>a large margin does not promise a win, but a small one rules
+it out.</strong> Where the ceiling cannot beat NN-copy, nothing built on part-constant colour can.</p>
+
+<table class="tw">
+  <thead><tr><th style="width:26%">dataset / category</th><th class="n" style="width:12%">ceiling</th>
+    <th class="n" style="width:12%">NN-copy</th><th class="n" style="width:12%">margin</th><th>consequence</th></tr></thead>
+  <tbody>
+    <tr><td>3DCoMPaT200 / chair</td><td class="n">5.07</td><td class="n">19.94</td><td class="n win">&minus;14.87</td><td>Oracle labels beat NN by 6.6 dE &mdash; the largest margin measured anywhere</td></tr>
+    <tr><td>ours / airplane <span class="tag b">long4k</span></td><td class="n">15.37</td><td class="n">19.19</td><td class="n win">&minus;3.82</td><td>The only cells where the trained pipeline wins</td></tr>
+    <tr><td>ours / chair</td><td class="n">11.74</td><td class="n">11.82</td><td class="n">&minus;0.08</td><td>No usable signal &mdash; NN-copy is already at the ceiling</td></tr>
+    <tr><td>DensePoint / chair</td><td class="n">20.01</td><td class="n">19.64</td><td class="n bad">+0.37</td><td>Ceiling is <em>worse</em> than the baseline. More training cannot fix this</td></tr>
+    <tr><td>PartNeXt / Chair</td><td class="n">8.24</td><td class="n">7.77</td><td class="n bad">+0.47</td><td>Same &mdash; artist textures cut across the derived part vocabulary</td></tr>
+  </tbody>
+</table>
+
+<h2>6 &middot; Segmentation cost tracks vocabulary size</h2>
+
+<p>The gap between <code>RePaint-part</code> and <code>RePaint-part (oracle seg)</code> is what the
+trained segmenter costs. It is negligible everywhere except one place:</p>
+
+<table class="tw">
+  <thead><tr><th style="width:26%">dataset / category</th><th class="n" style="width:12%">seg acc</th>
+    <th class="n" style="width:14%">part vocabulary</th><th class="n" style="width:14%">cost</th><th>reading</th></tr></thead>
+  <tbody>
+    <tr><td>3DCoMPaT200 / chair</td><td class="n">57.1 %</td><td class="n">22</td><td class="n bad">+8.37 dE</td><td><strong>The bottleneck.</strong> Oracle labels win by 6.6; the segmenter turns that into a 1.9 loss</td></tr>
+    <tr><td>PartNeXt / Chair</td><td class="n">73.8 %</td><td class="n">7</td><td class="n">&minus;1.52 dE</td><td>Trained labels marginally better than oracle &mdash; within noise</td></tr>
+    <tr><td>ours / airplane <span class="tag b">long4k</span></td><td class="n">85.0 %</td><td class="n">4</td><td class="n">+0.51 dE</td><td>Segmentation is not the limit here</td></tr>
+    <tr><td>DensePoint / chair</td><td class="n">85.5 %</td><td class="n">4</td><td class="n">+0.98 dE</td><td>Also not the limit &mdash; the ceiling is</td></tr>
+  </tbody>
+</table>
+
+<p>This separates two failure modes that look identical in the headline number. On DensePoint the
+method fails because <em>the data has no part-colour signal</em>. On 3DCoMPaT200 the signal is the
+strongest we have measured and the method fails because <em>it cannot find the parts</em>. Only the
+second is fixable by better modelling.</p>
+
+<h2>7 &middot; The joint-6D arm</h2>
+
+<p>Geometry and colour from one diffusion model, no frozen PoinTr. Nine cells, complete.</p>
+
+<ul>
+  <li><strong>Colour loses in 9 / 9</strong>, by +4.06 &plusmn; 0.94 dE against NN-copy evaluated on the
+  same generated geometry. Low variance across category and difficulty &mdash; systematic, not noise.</li>
+  <li><strong>Geometry is competitive.</strong> Chamfer 0.044 at simple against frozen PoinTr's 0.054;
+  PoinTr pulls ahead at hard (0.073 vs 0.089).</li>
+  <li><strong>Completion only pays off under heavy occlusion.</strong> The ratio to returning the input
+  unchanged is 0.98&ndash;1.15 at simple, rising to 2.4&ndash;3.9 at hard. Both arms show this.</li>
+</ul>
+
+<div class="note warn avoid">
+  <span class="lbl">Verdict withheld</span>
+  <p>The ablation separating the single-sample penalty and the correspondence confound has not been
+  run. Until it is, +4.06 cannot be attributed to the model rather than to the measurement &mdash;
+  &Delta;E rewards the conditional mean, and a sampler pays variance for it. The notebook is ready and
+  takes about an hour.</p>
+</div>
+
+<h2>8 &middot; Corrections</h2>
+
+<table class="tw">
+  <thead><tr><th style="width:34%">carried this week</th><th>corrected</th></tr></thead>
+  <tbody>
+    <tr><td>&ldquo;RePaint-part loses by +9.61 &plusmn; 3.04&rdquo;</td>
+      <td>That is the <code>base/hard</code> cell &mdash; unusable configuration. The valid figure is +2.99, and at simple and moderate the method <em>wins</em></td></tr>
+    <tr><td>&ldquo;Part conditioning wins&rdquo;</td>
+      <td>Over-claimed from three airplane rows. It wins in 2 of 27 cells with a trained segmenter, 5 with oracle labels. What holds without qualification is the negative: part-blind diffusion wins 0 of 27</td></tr>
+    <tr><td>&ldquo;The fixes flipped the result&rdquo;</td>
+      <td>The training budget did most of the work: 300 &rarr; 4000 epochs, alongside the frame and density fixes</td></tr>
+    <tr><td>DensePoint has &ldquo;no headroom&rdquo;, so drop it</td>
+      <td>Right conclusion, and now confirmed on the real run &mdash; its ceiling is 0.37 dE <em>worse</em> than NN-copy. But it was dismissed too early on a comparison with our own car, which is equally thin</td></tr>
+    <tr><td><code>headroom.py</code> measures usable signal</td>
+      <td>It compares the oracle to a <em>global mean</em>, a much weaker baseline than NN-copy, so it overstates. Our chair reads 3.85 there but its real margin is &minus;0.08. The script needs an NN-copy comparator</td></tr>
+  </tbody>
+</table>
+
+<h2>9 &middot; What is established, and what is not</h2>
+
+<h3>Established</h3>
+<ul>
+  <li>Part-blind diffusion does not beat nearest-neighbour copying &mdash; 0 of 27 cells, across five datasets.</li>
+  <li>With accurate part labels and sufficient training, part conditioning beats it, and can exceed the part-constant ceiling: 14.90 against a ceiling of 15.37 on <code>ours/airplane/simple</code>.</li>
+  <li>The ceiling-to-NN margin, measurable before training, rules out cells where no part method can win.</li>
+  <li>DensePoint and PartNeXt chair carry no usable part-colour signal. This is a property of those datasets and is reportable as such.</li>
+  <li>Segmentation is the binding constraint exactly once &mdash; 3DCoMPaT200, 22 parts, 57.1&nbsp;% accuracy, 8.37&nbsp;dE cost.</li>
+</ul>
+
+<h3>Not established</h3>
+<ul>
+  <li>Whether the win generalises beyond airplane. Car and chair have never been run in a valid configuration.</li>
+  <li>Whether the joint-6D loss is real or a measurement artefact. The ablation is unrun.</li>
+  <li>Whether 3DCoMPaT200 confirms the claim. Its oracle rows are promising, but the trained result is at 300 epochs.</li>
+  <li>Anything about statistical significance. Cells are means over 15 test models, one seed, no test.</li>
+</ul>
+
+<h2>10 &middot; The three runs that would settle it</h2>
+
+<table class="tw">
+  <thead><tr><th style="width:8%">#</th><th style="width:30%">run</th><th style="width:12%">cost</th><th>what it decides</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td><code>ours/car</code> + <code>ours/chair</code> at long4k</td><td class="n">~6 h</td>
+      <td>Whether the airplane win is the method or the category. Currently the single largest gap</td></tr>
+    <tr><td class="n">2</td><td>joint-6D ablation</td><td class="n">~1 h</td>
+      <td>Whether +4.06 is the model or the metric. Cheapest decisive run available</td></tr>
+    <tr><td class="n">3</td><td><code>3dcompat</code> at 4000 epochs</td><td class="n">~3 h</td>
+      <td>Whether the 6.6 dE oracle margin survives a trained segmenter. Not worth running for DensePoint or PartNeXt &mdash; their ceilings already lose</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  docs/results.html &middot; pulled from W&amp;B project colored-pc-completion, 43 runs, 27 evaluated cells &middot;
+  regenerate the PDF with Chrome headless --print-to-pdf
+</footer>
+
+</div>
