@@ -1,0 +1,82 @@
+{
+    "Airplane": {
+        "directory": "02691156",
+        "lables": ["wing", "body", "tail", "engine"],
+        "colors": ["blue", "green", "red", "pink"]
+    },
+    "Bag": {
+       "directory": "02773838",
+       "lables": ["handle", "body"],
+       "colors": ["blue", "green"]
+    },
+    "Cap": {
+       "directory": "02954340",
+       "lables": ["panels", "peak"],
+       "colors": ["blue", "green"]
+    },
+    "Car": {
+       "directory": "02958343",
+       "lables": ["wheel", "hood", "roof"],
+       "colors": ["blue", "green", "red"]
+    },
+    "Chair": {
+       "directory": "03001627",
+       "lables": ["leg", "arm", "back", "seat"],
+       "colors": ["blue", "green", "red", "pink"]
+    },
+    "Earphone": {
+       "directory": "03261776",
+       "lables": ["earphone", "headband"],
+       "colors": ["blue", "green"]
+    },
+    "Guitar": {
+        "directory": "03467517",
+        "lables": ["head", "body", "neck"],
+        "colors": ["blue", "green", "red"]
+    },
+    "Knife": {
+        "directory": "03624134",
+        "lables": ["handle", "blade"],
+        "colors": ["blue", "green"]
+    },
+    "Lamp": {
+        "directory": "03636649",
+        "lables": ["canopy", "lampshade", "base"],
+        "colors": ["blue", "green", "red"]
+    },
+    "Laptop": {
+        "directory": "03642806",
+        "lables": ["keyboard"],
+        "colors": ["blue"]
+    },
+    "Motorbike": {
+        "directory": "03790512",
+        "lables": ["wheel", "handle", "gas_tank", "light", "seat"],
+        "colors": ["blue", "green", "red", "pink", "yellow"]
+    },
+    "Mug": {
+        "directory": "03797390",
+        "lables": ["handle"],
+        "colors": ["blue"]
+    },
+    "Pistol": {
+        "directory": "03948459",
+        "lables": ["trigger_and_guard", "handle", "barrel"],
+        "colors": ["blue", "green", "red"]
+    },
+    "Rocket": {
+        "directory": "04099429",
+        "lables": ["nose", "body", "fin"],
+        "colors": ["blue", "green", "red"]
+    },
+    "Skateboard": {
+        "directory": "04225987",
+        "lables": ["wheel", "deck"],
+        "colors": ["blue", "green"]
+    },
+    "Table": {
+        "directory": "04379243",
+        "lables": ["leg", "top"],
+        "colors": ["blue", "green"]
+    }
+}
