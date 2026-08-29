@@ -25,3 +25,7 @@ __pycache__/
 *.pyc
 .venv/
 env/
+
+# Kaggle/experiment run outputs (checkpoints + tables). Model weights are data.
+results/
+results_pipeline/
